@@ -2,7 +2,7 @@ year = 2020
 
 
 def read_input():
-    with open('./input1.txt') as f:
+    with open('input1.txt') as f:
         return sorted([int(x.strip()) for x in f.readlines() if x.strip()])
 
 

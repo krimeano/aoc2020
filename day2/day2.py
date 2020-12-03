@@ -1,4 +1,4 @@
-input_file = './input2.txt'
+input_file = 'input2.txt'
 
 
 class InputItem:
