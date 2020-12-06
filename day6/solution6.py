@@ -25,7 +25,7 @@ def solve_6_1(data) -> int:
 def solve_6_2(data) -> int:
     out = 0
     for group in data:
-        users = [set([x for x in user]) for user in group.strip().split('\n')]
+        users = [set(user) for user in group.strip().split('\n')]
         group_selected = users.pop()
         while users:
             group_selected = group_selected.intersection(users.pop())
