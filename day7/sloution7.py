@@ -1,5 +1,5 @@
-def read_input(is_example=False):
-    input_path = is_example and 'example.txt' or 'input.txt'
+def read_input(is_example=False, suffix=''):
+    input_path = (is_example and 'example' or 'input') + suffix + '.txt'
     with open(input_path) as f:
         return f.readlines()
 
@@ -41,30 +41,49 @@ def revert_bags_map(bags_contain):
     return out
 
 
-def walk_bags(bags_in, target_color='shiny gold'):
+def walk_bags_out(bags_in, target_color='shiny gold'):
     possible_bags = set()
     if target_color not in bags_in:
         return possible_bags
     for x in bags_in[target_color]:
         possible_bags.add(x)
-        possible_bags.update(walk_bags(bags_in, x))
+        possible_bags.update(walk_bags_out(bags_in, x))
     return possible_bags
 
 
 def solve_7_1(input_data, target_color='shiny gold') -> int:
     bags_contain = process_data(input_data)
-    for x in bags_contain:
-        print(x, '<', ', '.join(sorted(bags_contain[x])) or '---')
     bags_in = revert_bags_map(bags_contain)
-    print('-' * 79)
-    for x in bags_in:
-        print(x, '>', ', '.join(sorted(bags_in[x])) or '---')
-    possible_bags = walk_bags(bags_in, target_color)
+    # for x in bags_contain:
+    #     print(x, '<', ', '.join(sorted(bags_contain[x])) or '---')
+    # print('-' * 79)
+    # for x in bags_in:
+    #     print(x, '>', ', '.join(sorted(bags_in[x])) or '---')
+    possible_bags = walk_bags_out(bags_in, target_color)
     return len(possible_bags)
 
 
+def walk_bags_in(bags_contains, target_color='shiny gold'):
+    out = 0
+    if not bags_contains[target_color]:
+        return out
+    for x in bags_contains[target_color]:
+        out += bags_contains[target_color][x] * (walk_bags_in(bags_contains, x) + 1)
+    return out
+
+
+def solve_7_2(input_data, target_color='shiny gold') -> int:
+    bags_contain = process_data(input_data)
+    # for x in bags_contain:
+    #     print(x, '<', ', '.join(sorted(bags_contain[x])) or '---')
+    return walk_bags_in(bags_contain)
+
+
 def solve_7():
-    return solve_7_1(read_input(True)) == 4 and solve_7_1(read_input())
+    return (
+        solve_7_1(read_input(True)) == 4 and solve_7_1(read_input()),
+        solve_7_2(read_input(True, '2')) == 126 and solve_7_2(read_input())
+    )
 
 
 if __name__ == '__main__':
