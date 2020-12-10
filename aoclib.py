@@ -15,6 +15,10 @@ def read_input(is_example=False, suffix=''):
         return [x.strip() for x in f.readlines() if x and x != '\n']
 
 
+def read_input_int(is_example=False, suffix=''):
+    return [int(x) for x in read_input(is_example, suffix)]
+
+
 def solve_part(solve_fn, part=1, example_result=0) -> int:
     """
     :param function solve_fn:

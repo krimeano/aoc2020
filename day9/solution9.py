@@ -1,12 +1,4 @@
-from aoclib import read_input
-
-
-def get_input(is_example=False):
-    """
-    :param bool is_example:
-    :return list[int]:
-    """
-    return [int(x) for x in read_input(is_example)]
+from aoclib import read_input_int
 
 
 def is_valid(n, preceding):
@@ -67,8 +59,8 @@ def solve_9_2(data, pre=25) -> int:
 
 def solve_9():
     return (
-        solve_9_1(get_input(True), 5) == 127 and solve_9_1(get_input()) or 0,
-        solve_9_2(get_input(True), 5) == 62 and solve_9_2(get_input()) or 0,
+        solve_9_1(read_input_int(True), 5) == 127 and solve_9_1(read_input_int()) or 0,
+        solve_9_2(read_input_int(True), 5) == 62 and solve_9_2(read_input_int()) or 0,
     )
 
 
