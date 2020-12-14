@@ -43,12 +43,35 @@ def solve_13_2(buses) -> int:
     :param list[int] buses:
     :return int:
     """
-    return 0
+    bus_times = [(buses[t], -t % buses[t]) for t in range(len(buses)) if buses[t]]
+    print(bus_times)
+    bus_0 = bus_times.pop(0)
+    a = 1
+    last_bus = bus_0[0]
+    c = bus_0[1]
+    for x in bus_times:
+        a *= last_bus
+        n = find_n(a, x[0], c, x[1])
+        print((a, c), x, n)
+        c += n[0] * a
+        last_bus = x[0]
+    return c
+
+
+def find_n(a: int, b: int, ad=0, bd=0):
+    d = (bd - ad) % b
+    n = 1
+    while n <= b:
+        if (a * n) % b == d:
+            return n, (a * n) // b
+        n += 1
+    return 0, 0
 
 
 if __name__ == '__main__':
     try:
         print(solve_13())
+        print(find_n(7 * 13, 59, 11, 55))
     except Exception as e:
         print(e)
         exit(1)
