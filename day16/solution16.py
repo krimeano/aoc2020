@@ -22,6 +22,9 @@ class Value:
             suffix = '\033[39m'
         return prefix + '{:>4}'.format(self.value) + suffix
 
+    def __int__(self):
+        return self.value
+
     def validate(self, limits) -> bool:
         """
         :param list[int] limits:
@@ -91,23 +94,86 @@ class TicketNotes:
         return '-' * 79 + '\nFIELDS:\n{0}\n\nTICKETS:\n{1}\n'.format(fields, tickets) + '-' * 79
 
 
+class Reader:
+    def __init__(self, notes: TicketNotes):
+        self.notes = notes
+        self.notes.validate_tickets()
+        self.possible_fields = []
+        self.fields_map = {}
+        self.found_indexes = []
+
+    def process(self):
+        self.init_fields(self.notes.tickets[0])
+        for ticket in self.notes.tickets:
+            self.process_ticket(ticket)
+        return self
+
+    def init_fields(self, ticket: Ticket):
+        self.fields_map = {}
+        s = len(ticket.values)
+        self.possible_fields = [self.notes.fields[:] for i in range(s)]
+        self.found_indexes = [False for i in range(s)]
+        for xx in self.possible_fields:
+            print('|'.join([x.name for x in xx]))
+
+    def process_ticket(self, ticket: Ticket):
+        print('ticket', ticket)
+        for ix in range(len(ticket.values)):
+            self.process_position(ix, ticket.values[ix])
+
+    def process_position(self, pos: int, value: Value):
+        if not value.is_valid:
+            return
+        fields = self.possible_fields[pos]
+        if len(fields) < 2:
+            return
+        # print('\t{0:>3} value ='.format(pos), value)
+
+        valid_fields = []
+
+        for f in fields:
+            for a, z in f.limits:
+                if a <= value.value <= z:
+                    break
+            else:
+                continue
+            valid_fields.append(f)
+
+        self.possible_fields[pos] = valid_fields
+        if len(valid_fields) == 1:
+            self.clean_up_field(pos, valid_fields[0])
+
+    def clean_up_field(self, found_pos: int, field: Field):
+        print('FIELD FOUND!', found_pos, field)
+        self.fields_map[field.name] = found_pos
+        for ix in range(len(self.possible_fields)):
+            if field in self.possible_fields[ix]:
+                self.possible_fields[ix].remove(field)
+                if len(self.possible_fields[ix]) == 1:
+                    self.clean_up_field(ix, self.possible_fields[ix][0])
+
+
 def solve_16_1(data):
     notes = TicketNotes(data)
+    x = notes.validate_tickets()
     # print(notes)
-    return notes.validate_tickets()
+    return x
 
 
 def solve_16_2(data):
-    notes = TicketNotes(data)
-    notes.validate_tickets()
-    print(notes)
-    return 0
+    reader = Reader(TicketNotes(data)).process()
+    ticket = [x for x in reader.notes.tickets if x.is_your].pop()
+    values = [int(ticket.values[ix]) for ix in [reader.fields_map[p] for p in reader.fields_map if 'departure' in p]]
+    out = 1
+    for v in values:
+        out *= v
+    return out
 
 
 def solve_16():
     return (
         solve_16_1(read_input(True)) == 71 and solve_16_1(read_input()),
-        solve_16_2(read_input(True)) and solve_16_2(read_input()),
+        solve_16_2(read_input()),
     )
 
 
