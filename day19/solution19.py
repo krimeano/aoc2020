@@ -2,8 +2,15 @@ from aoclib import read_input
 
 
 class Ruleset:
-    def __init__(self):
+    def __init__(self, debug=False):
         self.rules = dict()
+        self.debug = debug
+
+    def create_rules(self, lines):
+        for line in lines:
+            rr = line.split(':')
+            self.set_rule(int(rr[0]), rr[1])
+        return self
 
     def set_rule(self, ix: int, definition=''):
         self.get_rule(ix).define(definition)
@@ -24,23 +31,27 @@ class Ruleset:
         return self
 
     def validate(self, line: str) -> bool:
-        print('validate', line)
+        self.debug and print('\nvalidate', line)
         mm = self.rules[0].match(line)
-        return len([(h, t) for h, t in mm if not t]) > 0
+        is_valid = len([(h, t) for h, t in mm if not t]) > 0
+        self.debug and print(line, is_valid and 'is valid' or 'is not valid')
+        return is_valid
 
     def __str__(self):
         out = 'RULESET'
 
         levels = []
+        added_rules = set()
         current_level = {self.get_rule(0)}
-
         while len(current_level):
             levels.insert(0, current_level)
+            added_rules = added_rules.union(current_level)
             next_level = set()
             for x in current_level:
                 for yy in x.sub:
                     for y in yy:
-                        next_level.add(y)
+                        if y not in added_rules:
+                            next_level.add(y)
             current_level = next_level
         clean_levels = []
         considered = set()
@@ -74,10 +85,16 @@ class Rule:
         if definition[0] == definition[-1] == '"':
             self.char = definition[1:-1]
             return self
+        self.sub = []
+        for yy in definition.split('|'):
+            self.append_sub(yy)
 
-        yyy = [yy.strip().split(' ') for yy in definition.split('|')]
-        self.sub = [[self.ruleset.get_rule(int(y)).set_sup(self.ix) for y in yy] for yy in yyy]
         return self
+
+    def append_sub(self, sub_def: str):
+        yy = sub_def.strip().split(' ')
+        self.sub.append([self.ruleset.get_rule(int(y)).set_sup(self.ix) for y in yy])
+        pass
 
     def set_sup(self, ix):
         """
@@ -138,7 +155,7 @@ class Rule:
             char = '"{c}"'.format(c=self.char)
         else:
             sup = '(' + ','.join([str(w) for w in sorted(self.sup)]) + ')'
-            sub = '|'.join([','.join([str(y.ix) for y in yy]) for yy in self.sub])
+            sub = '|'.join([','.join([y.char or str(y.ix) for y in yy]) for yy in self.sub])
         return '{ix}{sup}:{sub}{char}'.format(ix=self.ix, sup=sup, sub=sub, char=char)
 
     def match(self, line):
@@ -146,8 +163,12 @@ class Rule:
         :param str line:
         :return list[(str,str)]:
         """
+        self.ruleset.debug and print('\t', self, 'matching', line)
         head = ''
         tail = line[:]
+
+        if not line:
+            return [(head, tail)]
 
         if self.char:
             if line[0] == self.char:
@@ -155,8 +176,10 @@ class Rule:
             return [(head, tail)]
 
         out = []
+
         for yy in self.sub:
             out += self.match_sub_rules(yy, line)
+
         return out
 
     def match_sub_rules(self, yy, line):
@@ -176,33 +199,42 @@ class Rule:
 
 
 def solve_19_1(data):
-    ruleset = Ruleset()
+    rules = [line for line in data if ':' in line]
+    strings = [line for line in data if ':' not in line]
+    ruleset = Ruleset().create_rules(rules)
+
+    # print(ruleset)
+    # print('-' * 79)
+    # ruleset.optimize()
+    # print('-' * 79)
+    # print(ruleset)
+
     out = 0
-
-    for line in data:
-        rr = line.split(':')
-        if len(rr) > 1:
-            ruleset.set_rule(int(rr[0]), rr[1])
-
-    print(ruleset)
-    print('-' * 79)
-    ruleset.optimize()
-    print('-' * 79)
-    print(ruleset)
-
-    for line in data:
-        if ':' not in line:
-            out += ruleset.validate(line)
-
+    for line in strings:
+        out += ruleset.validate(line)
+    print(out)
     return out
 
 
 def solve_19_2(data):
-    return 0
+    rules = [line for line in data if ':' in line]
+    strings = [line for line in data if ':' not in line]
+
+    ruleset = Ruleset(False).create_rules(rules)
+
+    ruleset.get_rule(8).append_sub('42 8')
+    ruleset.get_rule(11).append_sub('42 11 31')
+    out = 0
+    for line in strings:
+        out += ruleset.validate(line)
+    return out
 
 
 def solve_19():
-    return solve_19_1(read_input(True)) == 2 and solve_19_1(read_input())
+    return (
+        solve_19_1(read_input(True)) == 2 and solve_19_1(read_input()),
+        solve_19_1(read_input(True, '2')) == 3 and solve_19_2(read_input(True, '2')) == 12 and solve_19_2(read_input())
+    )
 
 
 if __name__ == '__main__':
