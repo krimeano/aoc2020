@@ -16,6 +16,14 @@ SHIFTS_ODD = [
     {'x': 0, 'y': 1},
 ]
 
+MONSTER = [
+    '                  # ',
+    '#    ##    ##    ###',
+    ' #  #  #  #  #  #   '
+]
+MH = len(MONSTER)
+MW = len(MONSTER[0])
+
 
 class Puzzle:
     def __init__(self, raw):
@@ -25,6 +33,8 @@ class Puzzle:
         self.taken_tiles = set()
         self.fulfilled_tiles = set()
         self.tiles_queue = []
+        self.big_tile = []
+
         current_tile = None
         for row in raw:
             if ':' in row:
@@ -58,6 +68,7 @@ class Puzzle:
         self.taken_tiles.add(corner)
         self.tiles_queue = []
         self.add_neighbours_to_queue(corner).process_queue()
+        self.merge_tiles()
 
     def get_first_corner(self):
         """
@@ -144,6 +155,19 @@ class Puzzle:
                 return False
         return True
 
+    def merge_tiles(self):
+        self.big_tile = []
+        for x in sorted(self.slots):
+            # print('x=', x)
+            band = [self.slots[x][y].get_rows_after_transition() for y in sorted(self.slots[x])]
+            # for y in sorted(self.slots[x]):
+            #     tile = self.slots[x][y]
+            #     print('\ty=', y, tile, tile.is_flipped, tile.rotation)
+            #     # print('\t\t' + '\n\t\t'.join(tile.rows), '\n')
+            #     print('\t\t\t' + '\n\t\t\t'.join(tile.get_rows_after_transition()), '\n')
+            for kz in range(len(band[0])):
+                self.big_tile.append(''.join([band[jy][kz] for jy in range(len(band))]))
+
 
 class Tile:
     def __init__(self, header: str):
@@ -221,6 +245,10 @@ class Tile:
                     return ix
         return -1
 
+    def get_rows_after_transition(self):
+        rows = rotate_rows(self.is_flipped and [x[::-1] for x in self.rows] or self.rows[:], self.rotation)
+        return [x[1:-1] for x in rows[1:-1]]
+
     def __str__(self):
         return '{id}: {sides}'.format(id=self.id, sides=self.get_sides())
 
@@ -247,6 +275,32 @@ def revert_side(side: int, size=10) -> int:
     return out
 
 
+def flip_rows(rows):
+    """
+    :param list[str] rows:
+    :return:
+    """
+    return [x[::-1] for x in rows]
+
+
+def rotate_rows(rows, rotations=0):
+    rotations = rotations % 4
+    if not rotations:
+        return rows
+    if rotations == 2:
+        return [x[::-1] for x in rows[::-1]]
+    out = ['' for x in rows[0]]
+    if rotations == 1:
+        for ix in range(len(rows)):
+            for jy in range(len(rows[ix])):
+                out[-jy - 1] += rows[ix][jy]
+    else:
+        for ix in range(len(rows)):
+            for jy in range(len(rows[ix])):
+                out[jy] = rows[ix][jy] + out[jy]
+    return out
+
+
 def solve_20_1(data):
     puzzle = Puzzle(data)
     puzzle.find_pairs()
@@ -260,10 +314,79 @@ def solve_20_1(data):
     return out
 
 
+def get_monster_indexes():
+    out = []
+    for i in range(MH):
+        for j in range(MW):
+            if MONSTER[i][j] == '#':
+                out.append([i, j])
+
+    return out
+
+
+CHECK_MONSTER = get_monster_indexes()
+
+
+def find_monster(area):
+    """
+    :param list[str] area:
+    :return:
+    """
+    # print('MONSTER:\n' + '\n'.join(MONSTER))
+    # print('AREA:\n' + '\n'.join(area))
+
+    # print(CHECK_MONSTER)
+    ah = len(area)
+    aw = len(area[0])
+    # print(ah, aw)
+    monsters_found = []
+    m = len(CHECK_MONSTER)
+    for ix in range(ah - MH):
+        for jy in range(aw - MW):
+            found = [area[ix + xy[0]][jy + xy[1]] == '#' for xy in CHECK_MONSTER]
+            if sum(found) == m:
+                monsters_found.append([ix, jy])
+    return monsters_found
+
+
+def draw_monsters(area, found):
+    """
+    :param list[str] area:
+    :param list[list[int]] found:
+    :return:
+    """
+    # print('MONSTER:\n' + '\n'.join(MONSTER))
+    # print('AREA:\n' + '\n'.join(area))
+    for x0, y0 in found:
+        for x, y in CHECK_MONSTER:
+            row = [c for c in area[x0 + x]]
+            row[y0 + y] = '0'
+            area[x0 + x] = ''.join(row)
+
+    print('FOUND\n' + '\n'.join(area))
+    return area
+
+
 def solve_20_2(data):
     puzzle = Puzzle(data)
     puzzle.solve()
-    return 0
+    area = puzzle.big_tile
+    r = 0
+    monsters_found = find_monster(area)
+    while not monsters_found and r < 8:
+        r += 1
+        area = rotate_rows(area, 1)
+        if r == 4:
+            area = flip_rows(area)
+
+        monsters_found = find_monster(area)
+    print(monsters_found)
+    area = draw_monsters(area, monsters_found)
+    out = 0
+    for row in area:
+        for c in row:
+            out += c == '#'
+    return out
 
 
 def solve_20():
